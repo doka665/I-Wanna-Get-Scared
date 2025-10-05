@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>I wanna get scared</title>
+  <style>
+    /* base: darker, more мрачная палитра */
+    html,body{height:100%;margin:0;background:radial-gradient(circle at 20% 10%, #060306 0%, #050409 40%, #030003 100%);font-family:Inter,Segoe UI,Arial,sans-serif;color:#e6e0da}
+    .center{height:100%;display:flex;align-items:center;justify-content:center}
+    button#go{
+      --size:160px;
+      width:var(--size);height:var(--size);border-radius:50%;border:1px solid rgba(255,255,255,0.03);cursor:pointer;
+      background:radial-gradient(circle at 30% 30%, #3b0b12 0%, #1a0210 38%, #070003 70%, #000 100%);
+      box-shadow:0 22px 60px rgba(0,0,0,0.8), inset 0 -10px 30px rgba(255,255,255,0.02);
+      color:#f6efe9;font-weight:800;font-size:16px;letter-spacing:0.6px;text-shadow:0 1px 0 rgba(0,0,0,0.6)
+    }
+    button#go:active{transform:translateY(2px) scale(0.99)}
+    /* small accessible label for screen readers (visually hidden) */
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  </style>
+</head>
+<body>
+  <div class="center">
+    <button id="go" title="Перейти на случайный сайт">Перейти</button>
+    <span class="sr-only" id="last">Не переходили</span>
+    <div id="overlay" aria-hidden="true">
+      <div class="particles" id="particles"></div>
+      <div class="rings" aria-hidden="true">
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="ring r3"></div>
+        <div class="core" aria-hidden="true"></div>
+      </div>
+      <div class="spinner" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="pulse">Переходим…</div>
+    </div>
+  </div>
+
+  <script>
+  // Расширенный набор сайтов: разные категории + пара "мрачных" для атмосферы
+    const sites = [
+      'https://creepypasta.com',
+      'https://scp-wiki.wikidot.com',
+      'https://backrooms.fandom.com',
+      'https://www.reddit.com/r/nosleep',
+      'https://www.creepypasta.org/wiki/The_Dionaea_House',
+      'https://holders.fandom.com',
+      'https://mortis.com',
+      'https://www.youtube.com/user/MarbleHornets',
+      'https://www.youtube.com/user/everymanHYBRID',
+      'https://www.reddit.com/r/A858',
+      'https://en.wikipedia.org/wiki/Cicada_3301',
+      'https://thisman.org',
+      'https://creepypasta.fandom.com/wiki/Ben_Drowned',
+      'https://local58.tv',
+      'https://thequietplaceproject.com',
+      'https://endless.horse',
+      'https://fallingfalling.com',
+      'https://staggeringbeauty.com',
+      'https://zombo.com',
+      'https://findtheinvisiblecow.com',
+      'https://zoomquilt.org',
+      'https://charleyproject.org',
+      'https://www.unexplained-mysteries.com',
+      'https://www.theblackvault.com',
+      'https://www.atlasobscura.com',
+      'https://www.nuforc.org',
+      'https://crimemuseum.org',
+      'https://bloody-disgusting.com',
+      'https://the-line-up.com',
+      'https://mysteriousuniverse.org',
+      'https://archive.org',
+      'https://creepypasta.fandom.com',
+      'https://nightmare-magazine.com'
+    ];
+
+    function chooseRandom(a){return a[Math.floor(Math.random()*a.length)];}
+
+  // Длительность анимации в миллисекундах (портал, чуть длиннее)
+  const ANIM_MS = 3800;
+
+    const overlay = document.getElementById('overlay');
+    const btn = document.getElementById('go');
+
+    btn.addEventListener('click', function(){
+      const host = chooseRandom(sites);
+      const url = host.includes('://') ? host : 'https://' + host;
+
+      // Открываем пустое окно синхронно, чтобы избежать блокировки всплывающих окон.
+      // Мы сразу записываем в него интерстициальную страницу, которая будет ждать postMessage с URL.
+      let newWin = null;
+      try {
+        newWin = window.open('', '_blank');
+        if (newWin) {
+          const safeHtml = `
+            <!doctype html>
+            <html lang="ru">
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width,initial-scale=1">
+                <title>Переход — портал</title>
+                <style>
+                  /* match main page: darker, мрачная палитра */
+                  :root{--bg:#030003;--ring1:rgba(120,12,12,0.14);--ring-shadow:rgba(80,8,12,0.06);--core-1:#c9ffdb;--core-2:#5cff8a}
+                  html,body{height:100%;margin:0;background:radial-gradient(circle at center, #020203 0%, #000 60%);font-family:Inter,Segoe UI,Arial,sans-serif;color:#dfe9e6}
+                  .wrap{height:100%;display:flex;align-items:center;justify-content:center}
+                  .rings{position:relative;width:60vmin;height:60vmin;display:flex;align-items:center;justify-content:center}
+                  .ring{position:absolute;border-radius:50%;box-shadow:inset 0 0 60px var(--ring-shadow);border:2px solid var(--ring1)}
+                  .r1{width:100%;height:100%;animation:spinSlow 8s linear infinite;filter:hue-rotate(-10deg) saturate(0.8)}
+                  .r2{width:74%;height:74%;animation:spinRev 5s linear infinite;filter:hue-rotate(6deg) saturate(0.9)}
+                  .r3{width:48%;height:48%;animation:spinFast 3s linear infinite;filter:hue-rotate(36deg) saturate(1.1)}
+                  @keyframes spinSlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+                  @keyframes spinFast{from{transform:rotate(0deg)}to{transform:rotate(-720deg)}}
+                  @keyframes spinRev{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+                  .core{width:12vmin;height:12vmin;border-radius:50%;background:radial-gradient(circle at 30% 30%, #ffd6d6 0%, #ff3b3b 22%, rgba(120,18,18,0.12) 52%, transparent 100%);box-shadow:0 0 100px rgba(255,80,80,0.14), inset 0 -10px 40px rgba(255,140,140,0.04);filter:contrast(1.05)}
+                  .particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+                  .particles i{position:absolute;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle,#a8ffdf,#4cff80);opacity:0;transform:translate3d(0,0,0);animation:particleMove 3.8s linear forwards}
+                  @keyframes particleMove{0%{opacity:0;transform:translateY(0) scale(0.3)}10%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(-120vh) scale(0.2)}}
+                  .msg{position:fixed;bottom:24px;width:100%;text-align:center;font-weight:700;color:rgba(200,255,220,0.95)}
+                </style>
+              </head>
+              <body>
+                <div class="wrap">
+                  <div class="particles" id="particles"></div>
+                  <div class="rings" aria-hidden="true">
+                    <div class="ring r1"></div>
+                    <div class="ring r2"></div>
+                    <div class="ring r3"></div>
+                    <div class="core"></div>
+                  </div>
+                </div>
+                <div class="msg">Ожидание перехода…</div>
+                <script>
+                  // particles for interstitial
+                  function spawnParticlesInterstitial(count){
+                    const container = document.getElementById('particles');
+                    if (!container) return;
+                    const w = window.innerWidth, h = window.innerHeight;
+                    for (let i=0;i<count;i++){
+                      const el = document.createElement('i');
+                      const left = Math.random()*w;
+                      const top = h - Math.random()*h*0.6;
+                      el.style.left = left + 'px';
+                      el.style.top = top + 'px';
+                      el.style.animationDelay = (Math.random()*0.8) + 's';
+                      container.appendChild(el);
+                    }
+                  }
+
+                  let portalPlaying = false;
+                  function playPortal(){
+                    if (portalPlaying) return; portalPlaying = true;
+                    spawnParticlesInterstitial(36);
+                    document.documentElement.classList.add('portal-play');
+                    // optional visual sync could be added here
+                  }
+
+                  window.addEventListener('message', function(ev){
+                    try {
+                      if (ev && ev.data && ev.data.type === 'navigate' && ev.data.url) {
+                        location.href = ev.data.url;
+                      }
+                      if (ev && ev.data && ev.data.type === 'start'){
+                        // стартуем анимацию портала
+                        playPortal();
+                      }
+                    } catch(e) { /* ignore */ }
+                  }, false);
+                  // Notify opener we are ready
+                  try { window.opener && window.opener.postMessage({type:'ready'}, '*'); } catch(e){}
+                <\/script>
+              </body>
+            </html>
+          `;
+          newWin.document.open();
+          newWin.document.write(safeHtml);
+          newWin.document.close();
+          // send a 'start' message so interstitial plays in sync
+          try { newWin.postMessage({type:'start'}, '*'); } catch(e){}
+        }
+      } catch(e) { newWin = null; }
+
+      // Обновляем скрытый label для вспомогательных устройств
+      const last = document.getElementById('last');
+      if (last) last.textContent = url;
+
+  // Показываем полупрозрачный оверлей и запускаем анимацию портала
+  overlay.classList.add('show','portal');
+
+  // Запускаем генерацию частиц (немного рандомных точек)
+  spawnParticles(28);
+
+      // Создаём клон кнопки и позиционируем поверх оригинала
+      const rect = btn.getBoundingClientRect();
+      const clone = btn.cloneNode(true);
+      clone.id = '';
+      clone.style.position = 'fixed';
+      clone.style.left = rect.left + 'px';
+      clone.style.top = rect.top + 'px';
+      clone.style.width = rect.width + 'px';
+      clone.style.height = rect.height + 'px';
+      clone.style.margin = '0';
+      clone.style.zIndex = 10001;
+      clone.style.transition = `all ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`;
+      clone.style.transformOrigin = 'center';
+      document.body.appendChild(clone);
+
+      // Скрываем оригинал на время анимации
+      btn.style.visibility = 'hidden';
+
+      // Запускаем анимацию: перемещаем клон в центр, сжимаем и затем создаём эффект "взрыва"
+      requestAnimationFrame(() => {
+        const targetX = (window.innerWidth - rect.width * 0.18) / 2;
+        const targetY = (window.innerHeight - rect.height * 0.18) / 2;
+        // небольшое вращение и сжатие
+        clone.style.left = targetX + 'px';
+        clone.style.top = targetY + 'px';
+        clone.style.width = rect.width * 0.18 + 'px';
+        clone.style.height = rect.height * 0.18 + 'px';
+        clone.style.transform = 'rotate(120deg) scale(0.18)';
+        clone.style.filter = 'blur(3px)';
+        clone.style.opacity = '1';
+      });
+
+      // Через часть времени добавим эффект "вспышки" перед переносом
+      setTimeout(() => {
+        overlay.classList.add('burst');
+        clone.style.transform = 'scale(2.6) rotate(180deg)';
+        clone.style.opacity = '0';
+        clone.style.filter = 'blur(30px)';
+      }, Math.max(ANIM_MS - 700, 200));
+
+      // По завершении анимации — навигация и очистка
+      setTimeout(() => {
+        try {
+          if (newWin && !newWin.closed) {
+            // Посылаем сообщение с URL в новое окно — само окно выполнит navigation
+            try { newWin.postMessage({type: 'navigate', url: url}, '*'); } catch(e) {
+              // Если postMessage не сработал, пробуем присвоить location
+              newWin.location.href = url;
+            }
+          } else {
+            // Попап был заблокирован — делаем переход в текущей вкладке
+            window.location.href = url;
+          }
+        } catch (err) {
+          window.location.href = url;
+        } finally {
+          overlay.classList.remove('show');
+          overlay.classList.remove('burst');
+          clone.remove();
+          // очистим частицы
+          clearParticles();
+          btn.style.visibility = '';
+        }
+      }, ANIM_MS + 50);
+    });
+
+    // particles helpers
+    function spawnParticles(count){
+      const container = document.getElementById('particles');
+      if (!container) return;
+      const w = window.innerWidth, h = window.innerHeight;
+      for (let i=0;i<count;i++){
+        const el = document.createElement('i');
+        const left = Math.random()*w;
+        const top = h - Math.random()*h*0.6; // start lower to fly up
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+        el.style.animationDelay = (Math.random()*0.6) + 's';
+        el.style.opacity = '0';
+        container.appendChild(el);
+      }
+    }
+    function clearParticles(){
+      const container = document.getElementById('particles');
+      if (!container) return;
+      container.innerHTML = '';
+    }
+  </script>
+  <style>
+    /* Overlay styles and teleport animation helpers */
+    #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity 220ms ease;z-index:9998}
+    #overlay.show{pointer-events:auto;opacity:1}
+
+    /* Portal base (мрачнее) */
+    #overlay.portal{background:radial-gradient(circle at center, rgba(8,3,6,0.78), rgba(0,0,0,0.95));backdrop-filter:blur(3px)}
+
+    /* swirling vortex (pseudo element) */
+    #overlay.portal::before{
+      content:'';position:absolute;inset:0;border-radius:0;background:radial-gradient(circle at center, rgba(40,8,20,0.5), transparent 40%);
+      mix-blend-mode:screen;opacity:0.95;filter:blur(18px)
+    }
+
+    /* rings (darker / bloody edges) */
+    #overlay .rings{position:relative;z-index:10001;width:60vmin;height:60vmin;pointer-events:none;display:flex;align-items:center;justify-content:center}
+    #overlay .rings .ring{position:absolute;border-radius:50%;box-shadow:inset 0 0 60px rgba(120,12,12,0.06);border:2px solid rgba(120,12,12,0.14);}
+    #overlay .rings .ring.r1{width:100%;height:100%;animation:spinSlow 6s linear infinite;filter:hue-rotate(-20deg) saturate(0.7)}
+    #overlay .rings .ring.r2{width:76%;height:76%;animation:spinRev 4.2s linear infinite;filter:hue-rotate(10deg) saturate(0.9)}
+    #overlay .rings .ring.r3{width:52%;height:52%;animation:spinFast 3s linear infinite;filter:hue-rotate(40deg) saturate(1.1)}
+    @keyframes spinSlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes spinFast{from{transform:rotate(0deg)}to{transform:rotate(-720deg)}}
+    @keyframes spinRev{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+  /* center core glow (красный шар) */
+  #overlay .core{position:relative;z-index:10002;width:12vmin;height:12vmin;border-radius:50%;background:radial-gradient(circle at 30% 30%, #ffd6d6 0%, #ff3b3b 22%, rgba(120,18,18,0.12) 52%, transparent 100%);box-shadow:0 0 100px rgba(255,80,80,0.14), inset 0 -10px 40px rgba(255,140,140,0.04);filter:contrast(1.02)}
+
+    /* particles (darker greenish) */
+    #overlay .particles{position:absolute;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
+    #overlay .particles i{position:absolute;width:6px;height:6px;border-radius:50%;background:linear-gradient(180deg,#bff9ff,#7fe6f3);opacity:0;transform:translate3d(0,0,0);animation:particleMove 3.6s linear infinite}
+    @keyframes particleMove{0%{opacity:0;transform:translateY(0) scale(0.3)}10%{opacity:1}70%{opacity:1}100%{opacity:0;transform:translateY(-120vh) scale(0.2)}}
+
+    /* burst flash (reddish) */
+    #overlay.burst::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at center, rgba(255,200,200,0.9), rgba(120,12,12,0.12) 20%, transparent 60%);opacity:0;animation:burstFlash 320ms linear forwards;z-index:10003}
+    @keyframes burstFlash{0%{opacity:0;transform:scale(0.9)}50%{opacity:1}100%{opacity:0;transform:scale(1.3)}}
+
+    #overlay .spinner{position:relative;z-index:10004;display:flex;gap:10px;pointer-events:none}
+    #overlay .spinner span{display:block;width:10px;height:10px;border-radius:50%;background:linear-gradient(180deg,#e6fff9,#7fe6f3);transform:translateY(0);animation:dot 0.9s ease-in-out infinite}
+    #overlay .spinner span:nth-child(2){animation-delay:0.12s}
+    #overlay .spinner span:nth-child(3){animation-delay:0.24s}
+    @keyframes dot{0%{transform:translateY(0);opacity:0.6}50%{transform:translateY(-12px);opacity:1}100%{transform:translateY(0);opacity:0.6}}
+
+    #overlay .pulse{position:relative;z-index:10004;margin-top:18px;color:#dff8fb;font-weight:700;font-size:14px;letter-spacing:0.8px;pointer-events:none}
+
+    /* clone (button) visual defaults while animating */
+    .teleport-clone{border-radius:50%;box-shadow:0 24px 60px rgba(2,6,23,0.6), inset 0 -6px 18px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center}
+  </style>
+</body>
+</html>
